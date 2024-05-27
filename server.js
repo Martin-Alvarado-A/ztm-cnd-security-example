@@ -25,24 +25,40 @@ const AUTH_OPTIONS = {
 };
 
 function verifyCallback(accessToken, refreshToken, profile, done) {
-  console.log(`🔎 | Server | verifyCallback > google profile:`, profile);
+  console.log(`🔎 | Server | verifyCallback > Google profile:`, profile);
 
   done(null, profile);
 }
 
 passport.use(new Strategy(AUTH_OPTIONS, verifyCallback));
 
+// Save the session to the cookie
+passport.serializeUser((user, done) => {
+  //
+  done(null, user);
+});
+
+// Read the session from the cookie
+passport.deserializeUser((obj, done) => {
+  //
+
+  done(null, obj);
+});
+
 const app = express();
 
 app.use(helmet());
+
 app.use(
   cookieSession({
     name: 'session',
     maxAge: 24 * 60 * 60 * 1000, // 1 Day
     keys: [config.COOKIE_KEY_1, config.COOKIE_KEY_2],
+    secure: true,
   })
 );
 app.use(passport.initialize());
+app.use(passport.session());
 
 function checkLoggedIn(req, res, next) {
   const isLoggedIn = true; //TODO
@@ -63,19 +79,14 @@ app.get(
 
 app.get(
   '/auth/google/callback',
-  passport.authenticate(
-    'google',
-    {
-      failureRedirect: '/auth/failure',
-      successRedirect: '/',
-      session: false, // TODO
-    },
-    (req, res) => {
-      console.log(
-        `🔎 | Server | /auth/google/callback > google called us back!`
-      );
-    }
-  )
+  passport.authenticate('google', {
+    failureRedirect: '/failure',
+    successRedirect: '/',
+    session: true, // true by default
+  }),
+  (req, res) => {
+    console.log(`🔎 | Server | /auth/google/callback > google called us back!`);
+  }
 );
 
 app.get('/auth/logout', (req, res) => {}); // TODO
