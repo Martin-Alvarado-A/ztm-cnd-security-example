@@ -27,7 +27,7 @@ function verifyCallback(accessToken, refreshToken, profile, done) {
   done(null, profile);
 }
 
-passport.use(new Strategy(AUTH_OPTIONS, verifyCallback()));
+passport.use(new Strategy(AUTH_OPTIONS, verifyCallback));
 
 const app = express();
 
@@ -44,14 +44,38 @@ function checkLoggedIn(req, res, next) {
   next();
 }
 
-app.get('/auth/google', (req, res) => {});
+app.get(
+  '/auth/google',
+  passport.authenticate('google', {
+    scope: ['email'],
+  })
+);
 
-app.get('/auth/google/callback', (req, res) => {}); // TODO
+app.get(
+  '/auth/google/callback',
+  passport.authenticate(
+    'google',
+    {
+      failureRedirect: '/auth/failure',
+      successRedirect: '/',
+      session: false, // TODO
+    },
+    (req, res) => {
+      console.log(
+        `🔎 | Server | /auth/google/callback > google called us back!`
+      );
+    }
+  )
+);
 
 app.get('/auth/logout', (req, res) => {}); // TODO
 
 app.get('/secret', checkLoggedIn, (req, res) => {
   return res.send('Your personal secret value is 42');
+});
+
+app.get('/failure', (req, res) => {
+  return res.send('Failure to log in!');
 });
 
 app.get('/', (req, res) => {
